@@ -25,8 +25,8 @@ def preprocess_data(tweets):
     unique_tweets = collections.Counter()
     for i,tweet in enumerate(tweets):
 
-        # Remove urls
-        tweets[i] = [x for x in tweet if not 'http' in x]
+        # Remove urls and quotemarks
+        tweets[i] = [x.replace('"','') for x in tweet if not 'http' in x]
 
         # Remove non-ascii characters
         for j,word in enumerate(tweets[i]):
@@ -51,7 +51,7 @@ def preprocess_data(tweets):
         # Remove hashtag character in tweet text
         tweet_text = ' '.join(tweets[i][:end_sentence + 1]).replace('#', '')
         unique_tweets.update([tweet_text])
-        
+
     return (unique_tweets, hashtags)
 
 tweets, hashtags = preprocess_data(load_data())
