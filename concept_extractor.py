@@ -2,6 +2,10 @@ from nltk import pos_tag
 import string
 import collections
 from nltk.tokenize import TweetTokenizer
+from nltk.text import TextCollection
+import math
+import operator
+
 
 def load_data(filename='data/TweetData.txt'):
     tweet_file = open(filename)
@@ -55,22 +59,32 @@ def preprocess_data(tweets):
 
     return (unique_tweets, hashtags)
 
-def tokenize(tweets):
+def extract_context(tweets):
+    # Tokenize tweets, postag tokens and filter out words that does not make sense for context
     tokenizer = TweetTokenizer()
-    return [ tokenizer.tokenize(x) for x in tweets ]
+    postagged_tweets = [ pos_tag(tokenizer.tokenize(x)) for x in tweets ]
+    CONTEXT_DESCRIPTORS = ['CD', 'NN', 'NNS', 'NNP', 'NNPS', 'JJ', 'JJR', 'JJS', 'VBG']
+    filtered_tweets = []
+    for tweet in postagged_tweets:
+        filtered_tweets.append([ tag[0] for tag in tweet if tag[1] in CONTEXT_DESCRIPTORS ])
+    return filtered_tweets
 
-def postag(tokenized_tweets):
-    return [ pos_tag(x) for x in tokenized_tweets ]
+def tfidf_score(word, vocab_size, n_documents, filtered_tweets):
+    # Calcualte tf-idf score for word
+    term_in_document_count = sum([ 1 if word in ' '.join(x).lower().split(' ') else 0 for x in filtered_tweets ])
+    idf = math.log(float(n_documents)/term_in_document_count)
+    tf = float(term_in_document_count)/vocab_size
+    tfidf = tf*idf
+    return tfidf
         
 
 tweets, hashtags = preprocess_data(load_data())
-postagged_tweets = postag(tokenize(tweets.keys()))
+filtered_tweets = extract_context(tweets)
 
-# for tweet in tweets.keys():
-#      print [tweet, tweets[tweet]]
-
-# for hashtag in hashtags.keys():
-#     print [hashtag, hashtags[hashtag]]
-
-for postagged_tweet in postagged_tweets:
-    print postagged_tweet
+freq_terms = collections.Counter([ y.lower() for x in filtered_tweets for y in x ])
+tfidfs = {}
+for term in freq_terms:
+    tfidfs[term] = tfidf_score(term, vocab_size=len(freq_terms), n_documents=sum(tweets.values()), filtered_tweets)
+sorted_tfidfs = sorted(tfidfs.items(), key=operator.itemgetter(1))
+for tfidf in sorted_tfidfs:
+    print tfidf
