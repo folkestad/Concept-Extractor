@@ -1,6 +1,7 @@
-import nltk
+from nltk import pos_tag
 import string
 import collections
+from nltk.tokenize import TweetTokenizer
 
 def load_data(filename='data/TweetData.txt'):
     tweet_file = open(filename)
@@ -54,10 +55,22 @@ def preprocess_data(tweets):
 
     return (unique_tweets, hashtags)
 
-tweets, hashtags = preprocess_data(load_data())
+def tokenize(tweets):
+    tokenizer = TweetTokenizer()
+    return [ tokenizer.tokenize(x) for x in tweets ]
 
-for tweet in tweets.keys():
-     print [tweet, tweets[tweet]]
+def postag(tokenized_tweets):
+    return [ pos_tag(x) for x in tokenized_tweets ]
+        
+
+tweets, hashtags = preprocess_data(load_data())
+postagged_tweets = postag(tokenize(tweets.keys()))
+
+# for tweet in tweets.keys():
+#      print [tweet, tweets[tweet]]
 
 # for hashtag in hashtags.keys():
 #     print [hashtag, hashtags[hashtag]]
+
+for postagged_tweet in postagged_tweets:
+    print postagged_tweet
