@@ -70,20 +70,22 @@ def preprocess_data(tweets):
 
     return (unique_tweets, hashtags)
 
-def extract_context(tweets):
+def extract_chunks(tweets):
+    # Extract chunks out of tweets
+
     VALID_CONTEXTS = [
         re.compile("(  NN)+"), 
         re.compile("(  NN)+( NNS)"), 
         re.compile("( NNP)+"), 
-        re.compile("( NNP)+(NNPS)"),
-        re.compile(" JJ(S|R)(  NN)+"), 
-        re.compile(" JJ(S|R)(  NN)+( NNS)"), 
-        re.compile(" JJ(S|R)( NNP)+"), 
-        re.compile(" JJ(S|R)( NNP)+(NNPS)"),
-        re.compile("  JJ(  NN)+"), 
-        re.compile("  JJ(  NN)+( NNS)"), 
-        re.compile("  JJ( NNP)+"), 
-        re.compile("  JJ( NNP)+(NNPS)")
+        re.compile("( NNP)+(NNPS)")
+        # re.compile(" JJ(S|R)(  NN)+"), 
+        # re.compile(" JJ(S|R)(  NN)+( NNS)"), 
+        # re.compile(" JJ(S|R)( NNP)+"), 
+        # re.compile(" JJ(S|R)( NNP)+(NNPS)"),
+        # re.compile("  JJ(  NN)+"), 
+        # re.compile("  JJ(  NN)+( NNS)"), 
+        # re.compile("  JJ( NNP)+"), 
+        # re.compile("  JJ( NNP)+(NNPS)")
     ]
     # Tokenize tweets, postag tokens and filter out words that does not make sense for context
     tokenizer = TweetTokenizer()
@@ -96,10 +98,22 @@ def extract_context(tweets):
         for regex in VALID_CONTEXTS:
             for match in regex.finditer(tag_string):
                 chunk = tags[int(match.start() / 4) : int(match.end() / 4)]
-                chunks.update([' '.join([tag[0].lower() for tag in chunk])])
+                chunk_string = [' '.join([tag[0].lower() for tag in chunk])]
+                for _ in range(tweet[1]):
+                    chunks.update(chunk_string)
+            
     return chunks
 
 tweets, hashtags = preprocess_data(load_data())
-filtered_tweets = extract_context(tweets)
+chunks = extract_chunks(tweets)
 
-print filtered_tweets.most_common(20)
+# Reduce single word significance
+for chunk in chunks:
+    chunk_expression = re.compile(r'(\s+|^){}(\s+|$)'.format(chunk))
+    for other_chunk in chunks:
+        if chunk == other_chunk:
+            continue
+        elif chunk_expression.search(other_chunk) != None:
+            chunks[chunk] -= chunks[other_chunk]
+
+print chunks.most_common(20)
