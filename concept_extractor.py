@@ -51,7 +51,7 @@ def preprocess_data(tweets):
         for j, word in reversed(list(enumerate(tweets[i]))):
             end_sentence = j
             if word.startswith('#'):
-                hashtags.update([tweets[i][j][1:]])
+                hashtags.update([tweets[i][j][1:].lower()])
             else:
                 break
         
@@ -87,16 +87,22 @@ def extract_chunks(tweets):
         # re.compile("  JJ( NNP)+"), 
         # re.compile("  JJ( NNP)+(NNPS)")
     ]
-    # Tokenize tweets, postag tokens and filter out words that does not make sense for context
+
     tokenizer = TweetTokenizer()
     chunks = collections.Counter()
 
+    # Tokenize and pos-tag tweet
     postagged_tweets = [ (pos_tag(tokenizer.tokenize(x)), occurences) for x, occurences in tweets.items() ]
     for tweet in postagged_tweets:
         tags = tweet[0]
+
+        # Create tagged POS sequence
         tag_string = ''.join([x[1].rjust(4, ' ') for x in tags])
+
+        # Extract chunks
         for regex in VALID_CONTEXTS:
             for match in regex.finditer(tag_string):
+                # Map POS to text and save chunks
                 chunk = tags[int(match.start() / 4) : int(match.end() / 4)]
                 chunk_string = [' '.join([tag[0].lower() for tag in chunk])]
                 for _ in range(tweet[1]):
@@ -107,6 +113,10 @@ def extract_chunks(tweets):
 tweets, hashtags = preprocess_data(load_data())
 chunks = extract_chunks(tweets)
 
+for hashtag, times in hashtags.items():
+    for _ in range(int(times*0.25)):
+        chunks.update(hashtags)
+
 # Reduce single word significance
 for chunk in chunks:
     chunk_expression = re.compile(r'(\s+|^){}(\s+|$)'.format(chunk))
@@ -116,4 +126,4 @@ for chunk in chunks:
         elif chunk_expression.search(other_chunk) != None:
             chunks[chunk] -= chunks[other_chunk]
 
-print chunks.most_common(20)
+print chunks.most_common(10)
