@@ -28,6 +28,7 @@ def load_data(filename='data/TweetData.txt'):
 def preprocess_data(tweets):
     hashtags = collections.Counter()
     unique_tweets = collections.Counter()
+    VALID_CHARACTERS = string.ascii_letters + string.digits + '-.,;:!?'
     for i,tweet in enumerate(tweets):
 
         # Remove urls and quotemarks
@@ -53,8 +54,17 @@ def preprocess_data(tweets):
             else:
                 break
         
+        # Remove '#' and '...' at the end
+        tmp = tweets[i][:end_sentence + 1]
+        if tmp[-1].endswith('...'):
+            tmp = tmp[:len(tmp)-1]
+
+        # Remove invalid characters / keep valid characters
+        for i, word in enumerate(tmp):
+            tmp[i] = ''.join([x for x in word if x in VALID_CHARACTERS])
+        
         # Remove hashtag character in tweet text
-        tweet_text = ' '.join(tweets[i][:end_sentence + 1]).replace('#', '')
+        tweet_text = ' '.join(tmp).replace('#', '')
         unique_tweets.update([tweet_text])
 
     return (unique_tweets, hashtags)
