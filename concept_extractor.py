@@ -62,29 +62,14 @@ def preprocess_data(tweets):
 def extract_context(tweets):
     # Tokenize tweets, postag tokens and filter out words that does not make sense for context
     tokenizer = TweetTokenizer()
-    postagged_tweets = [ pos_tag(tokenizer.tokenize(x)) for x in tweets ]
+    postagged_tweets = [ (pos_tag(tokenizer.tokenize(x)), occurences) for x, occurences in tweets.items() ]
     CONTEXT_DESCRIPTORS = ['CD', 'NN', 'NNS', 'NNP', 'NNPS', 'JJ', 'JJR', 'JJS', 'VBG']
     filtered_tweets = []
     for tweet in postagged_tweets:
-        filtered_tweets.append([ tag[0] for tag in tweet if tag[1] in CONTEXT_DESCRIPTORS ])
+        filtered_tweets.append(([ tag[0] for tag in tweet[0] if tag[1] in CONTEXT_DESCRIPTORS ], tweet[1]))
     return filtered_tweets
-
-def tfidf_score(word, vocab_size, n_documents, filtered_tweets):
-    # Calcualte tf-idf score for word
-    term_in_document_count = sum([ 1 if word in ' '.join(x).lower().split(' ') else 0 for x in filtered_tweets ])
-    idf = math.log(float(n_documents)/term_in_document_count)
-    tf = float(term_in_document_count)/vocab_size
-    tfidf = tf*idf
-    return tfidf
         
-
 tweets, hashtags = preprocess_data(load_data())
 filtered_tweets = extract_context(tweets)
 
-freq_terms = collections.Counter([ y.lower() for x in filtered_tweets for y in x ])
-tfidfs = {}
-for term in freq_terms:
-    tfidfs[term] = tfidf_score(term, vocab_size=len(freq_terms), n_documents=sum(tweets.values()), filtered_tweets)
-sorted_tfidfs = sorted(tfidfs.items(), key=operator.itemgetter(1))
-for tfidf in sorted_tfidfs:
-    print tfidf
+print filtered_tweets
