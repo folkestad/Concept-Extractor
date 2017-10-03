@@ -4,6 +4,7 @@ import collections
 from nltk.tokenize import TweetTokenizer
 from nltk.text import TextCollection
 import math
+import re
 import operator
 
 
@@ -28,7 +29,7 @@ def load_data(filename='data/TweetData.txt'):
 def preprocess_data(tweets):
     hashtags = collections.Counter()
     unique_tweets = collections.Counter()
-    VALID_CHARACTERS = string.ascii_letters + string.digits + '-.,;:!?'
+    VALID_CHARACTERS = string.ascii_letters + string.digits + '-.,;:!?' + "'"
     for i,tweet in enumerate(tweets):
 
         # Remove urls and quotemarks
@@ -70,16 +71,35 @@ def preprocess_data(tweets):
     return (unique_tweets, hashtags)
 
 def extract_context(tweets):
+    VALID_CONTEXTS = [
+        re.compile("(  NN)+"), 
+        re.compile("(  NN)+( NNS)"), 
+        re.compile("( NNP)+"), 
+        re.compile("( NNP)+(NNPS)"),
+        re.compile(" JJ(S|R)(  NN)+"), 
+        re.compile(" JJ(S|R)(  NN)+( NNS)"), 
+        re.compile(" JJ(S|R)( NNP)+"), 
+        re.compile(" JJ(S|R)( NNP)+(NNPS)"),
+        re.compile("  JJ(  NN)+"), 
+        re.compile("  JJ(  NN)+( NNS)"), 
+        re.compile("  JJ( NNP)+"), 
+        re.compile("  JJ( NNP)+(NNPS)")
+    ]
     # Tokenize tweets, postag tokens and filter out words that does not make sense for context
     tokenizer = TweetTokenizer()
+    chunks = collections.Counter()
+
     postagged_tweets = [ (pos_tag(tokenizer.tokenize(x)), occurences) for x, occurences in tweets.items() ]
-    CONTEXT_DESCRIPTORS = ['CD', 'NN', 'NNS', 'NNP', 'NNPS', 'JJ', 'JJR', 'JJS', 'VBG']
-    filtered_tweets = []
     for tweet in postagged_tweets:
-        filtered_tweets.append(([ tag[0] for tag in tweet[0] if tag[1] in CONTEXT_DESCRIPTORS ], tweet[1]))
-    return filtered_tweets
-        
+        tags = tweet[0]
+        tag_string = ''.join([x[1].rjust(4, ' ') for x in tags])
+        for regex in VALID_CONTEXTS:
+            for match in regex.finditer(tag_string):
+                chunk = tags[int(match.start() / 4) : int(match.end() / 4)]
+                chunks.update([' '.join([tag[0].lower() for tag in chunk])])
+    return chunks
+
 tweets, hashtags = preprocess_data(load_data())
 filtered_tweets = extract_context(tweets)
 
-print filtered_tweets
+print filtered_tweets.most_common(20)
