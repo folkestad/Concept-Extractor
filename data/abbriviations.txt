@@ -1,0 +1,5 @@
+mufc,manchester united
+man united,manchester united
+nz,new zealand
+newzealand,new zealand
+nznats,new zealand national party

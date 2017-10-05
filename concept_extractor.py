@@ -7,6 +7,10 @@ import math
 import re
 import operator
 
+# Load abbreviations
+ABBREVIATIONS = {}
+for abbreviation, replacement in (line.strip().split(',') for line in open('data/abbriviations.txt')):
+    ABBREVIATIONS[abbreviation] = replacement
 
 def load_data(filename='data/TweetData.txt'):
     tweet_file = open(filename)
@@ -30,6 +34,7 @@ def preprocess_data(tweets):
     hashtags = collections.Counter()
     unique_tweets = collections.Counter()
     VALID_CHARACTERS = string.ascii_letters + string.digits + '-.,;:!?' + "'"
+
     for i,tweet in enumerate(tweets):
 
         # Remove urls and quotemarks
@@ -51,7 +56,10 @@ def preprocess_data(tweets):
         for j, word in reversed(list(enumerate(tweets[i]))):
             end_sentence = j
             if word.startswith('#'):
-                hashtags.update([tweets[i][j][1:].lower()])
+                tmp_hashtag = tweets[i][j][1:].lower()
+                if tmp_hashtag in ABBREVIATIONS:
+                    tmp_hashtag = ABBREVIATIONS[tmp_hashtag]
+                hashtags.update([tmp_hashtag])
             else:
                 break
         
@@ -66,8 +74,9 @@ def preprocess_data(tweets):
         
         # Remove hashtag character in tweet text
         tweet_text = ' '.join(tmp).replace('#', '')
-        unique_tweets.update([tweet_text])
 
+        unique_tweets.update([tweet_text])
+    
     return (unique_tweets, hashtags)
 
 def extract_chunks(tweets):
@@ -104,10 +113,15 @@ def extract_chunks(tweets):
             for match in regex.finditer(tag_string):
                 # Map POS to text and save chunks
                 chunk = tags[int(match.start() / 4) : int(match.end() / 4)]
-                chunk_string = [' '.join([tag[0].lower() for tag in chunk])]
+                chunk_string = ' '.join([tag[0].lower() for tag in chunk])
+
+                # Replace abbriaviations with full word
+                for abbreviation, replacement in ABBREVIATIONS.items():
+                    chunk_string = chunk_string.replace(abbreviation, replacement)
+
                 for _ in range(tweet[1]):
-                    chunks.update(chunk_string)
-            
+                    chunks.update([chunk_string])
+                    
     return chunks
 
 tweets, hashtags = preprocess_data(load_data())
@@ -115,7 +129,7 @@ chunks = extract_chunks(tweets)
 
 for hashtag, times in hashtags.items():
     for _ in range(int(times*0.25)):
-        chunks.update(hashtags)
+        chunks.update([hashtag])
 
 # Reduce single word significance
 for chunk in chunks:
