@@ -128,7 +128,7 @@ tweets, hashtags = preprocess_data(load_data())
 chunks = extract_chunks(tweets)
 
 for hashtag, times in hashtags.items():
-    for _ in range(int(times*0.25)):
+    for _ in range(times):
         chunks.update([hashtag])
 
 # Reduce single word significance
